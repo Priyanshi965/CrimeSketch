@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import "./forensic-console.css";
+import SketchGame from "@/components/SketchGame";
 
-type ViewKey = "match" | "suspects" | "analytics" | "training";
+type ViewKey = "match" | "suspects" | "analytics" | "training" | "game";
 
 interface MatchResult {
   suspect_id?: number;
@@ -409,6 +410,7 @@ export default function Search() {
           <button className={activeView === "suspects" ? "active" : ""} onClick={() => setActiveView("suspects")}>Suspects</button>
           <button className={activeView === "analytics" ? "active" : ""} onClick={() => setActiveView("analytics")}>Analytics</button>
           <button className={activeView === "training" ? "active" : ""} onClick={() => setActiveView("training")}>Training</button>
+          <button className={activeView === "game" ? "active" : ""} onClick={() => setActiveView("game")}>Sketch Game</button>
         </aside>
 
         <section className="fc-content">
@@ -416,6 +418,7 @@ export default function Search() {
           {activeView === "suspects" && renderSuspects()}
           {activeView === "analytics" && renderAnalytics()}
           {activeView === "training" && renderTraining()}
+          {activeView === "game" && <SketchGame />}
         </section>
       </main>
     </div>

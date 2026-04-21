@@ -412,3 +412,330 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   SKETCH GAME MODULE
+═══════════════════════════════════════════════════════ */
+
+.fc-game-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Mode tabs */
+.fc-game-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fc-game-tab {
+  border: 1px solid #1a2d48;
+  background: #0d1624;
+  color: #8aa9c6;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fc-game-tab:hover {
+  border-color: #224060;
+  color: #c2d8f0;
+}
+
+.fc-game-tab.active {
+  border-color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+}
+
+/* 3-column body */
+.fc-game-body {
+  display: grid;
+  grid-template-columns: 230px 1fr 220px;
+  gap: 12px;
+  align-items: start;
+}
+
+/* Left info panel */
+.fc-game-info {
+  background: #101826;
+  border: 1px solid #1a2d48;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.fc-game-desc {
+  font-size: 0.75rem;
+  color: #7a9bb8;
+  line-height: 1.55;
+  margin: 0 0 10px;
+}
+
+.fc-game-features {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.fc-feature-btn {
+  border: 1px solid #1a2d48;
+  background: #0d1624;
+  color: #8aa9c6;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fc-feature-btn:hover { border-color: #224060; color: #c2d8f0; }
+.fc-feature-btn.active { border-color: #00d4ff; color: #00d4ff; background: rgba(0,212,255,0.08); }
+
+.fc-game-tools {
+  margin-top: 4px;
+}
+
+.fc-tool-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 28px;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.7rem;
+  color: #6a9abf;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* Rank & XP */
+.fc-rank-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+
+.fc-xp-label {
+  font-size: 0.68rem;
+  color: #6a9abf;
+  font-family: 'Share Tech Mono', monospace;
+  margin-bottom: 5px;
+}
+
+.fc-xp-sub {
+  font-size: 0.65rem;
+  color: #4e7697;
+  font-family: 'Share Tech Mono', monospace;
+  text-align: right;
+}
+
+.fc-xp-track {
+  height: 5px;
+  background: #1a2d48;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+
+.fc-xp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* Center canvas area */
+.fc-game-canvas-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.fc-canvas-stack {
+  position: relative;
+  border: 1px solid #224060;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.06);
+}
+
+.fc-canvas-tpl,
+.fc-canvas-draw {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 400px;
+  height: 400px;
+}
+
+.fc-ghost-overlay {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 212, 255, 0.15);
+  border: 1px solid #00d4ff;
+  border-radius: 6px;
+  color: #00d4ff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.fc-game-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Right stats panel */
+.fc-game-stats {
+  background: #101826;
+  border: 1px solid #1a2d48;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.fc-score-section {
+  margin-bottom: 10px;
+}
+
+.fc-score-ring {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 6px 0 2px;
+}
+
+.fc-score-ring span {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #00ffcc;
+  line-height: 1;
+}
+
+.fc-score-ring small {
+  font-size: 0.75rem;
+  color: #6a9abf;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.fc-score-label {
+  font-size: 0.78rem;
+  color: #c2d8f0;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.fc-xp-gained {
+  color: #ffd700;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.fc-score-breakdown {
+  border: 1px solid #1a2d48;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fc-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-family: 'Share Tech Mono', monospace;
+  border-bottom: 1px solid #1a2d48;
+}
+
+.fc-breakdown-row:last-child { border-bottom: none; }
+.fc-breakdown-row span:first-child { color: #6a9abf; }
+.fc-breakdown-row span:last-child  { color: #00d4ff; }
+
+/* Mini match result (Boost mode) */
+.fc-mini-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #1a2d48;
+  border-radius: 6px;
+  padding: 6px;
+  margin-bottom: 6px;
+  background: #0d1624;
+}
+
+.fc-mini-match img,
+.fc-mini-ph {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0a101b;
+  flex-shrink: 0;
+}
+
+.fc-mini-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fc-mini-info strong {
+  font-size: 0.78rem;
+  color: #c2d8f0;
+}
+
+.fc-mini-info span {
+  font-size: 0.7rem;
+  color: #00d4ff;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* Leaderboard */
+.fc-lb-row {
+  display: grid;
+  grid-template-columns: 24px 40px 1fr 56px;
+  gap: 6px;
+  padding: 5px 2px;
+  border-bottom: 1px solid #1a2d48;
+  font-size: 0.7rem;
+  font-family: 'Share Tech Mono', monospace;
+  align-items: center;
+}
+
+.fc-lb-row:last-child { border-bottom: none; }
+.fc-lb-rank  { color: #6a9abf; }
+.fc-lb-score { color: #00ffcc; font-weight: bold; }
+.fc-lb-mode  { color: #8aa9c6; text-transform: capitalize; }
+.fc-lb-date  { color: #4e7697; text-align: right; }
+
+/* Responsive game layout */
+@media (max-width: 1200px) {
+  .fc-game-body {
+    grid-template-columns: 200px 1fr 190px;
+  }
+}
+
+@media (max-width: 960px) {
+  .fc-game-body {
+    grid-template-columns: 1fr;
+  }
+
+  .fc-game-canvas-area {
+    order: -1;
+  }
+}
