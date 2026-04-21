@@ -260,6 +260,7 @@ export default function Search() {
       <table className="fc-table">
         <thead>
           <tr>
+            <th>Photo</th>
             <th>ID</th>
             <th>Name</th>
             <th>City</th>
@@ -272,11 +273,22 @@ export default function Search() {
             .filter((s: any) => !statusFilter || (s.status || "").toLowerCase() === statusFilter.toLowerCase())
             .map((suspect: any) => (
               <tr key={suspect.id}>
+                <td>
+                  {suspect.image_url ? (
+                    <img src={suspect.image_url} alt={suspect.name} style={{ width: 42, height: 42, borderRadius: 4, objectFit: 'cover', border: '1px solid #1a2d48' }} />
+                  ) : (
+                    <div style={{ width: 42, height: 42, borderRadius: 4, background: '#0a101b', display: 'grid', placeItems: 'center', fontSize: '0.6rem', color: '#4e7697' }}>No Img</div>
+                  )}
+                </td>
                 <td>{suspect.id}</td>
                 <td>{suspect.name}</td>
                 <td>{suspect.city || "-"}</td>
                 <td>{suspect.crime_type || "-"}</td>
-                <td>{suspect.risk_level || "-"}</td>
+                <td>
+                  <span className={`fc-risk-badge ${suspect.risk_level || "low"}`}>
+                    {(suspect.risk_level || "low").toUpperCase()}
+                  </span>
+                </td>
               </tr>
             ))}
         </tbody>

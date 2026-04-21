@@ -181,3 +181,88 @@ export function makeReferenceCanvas(
   drawProfileFace(ctx, W / 2, H / 2, p, 1.0, "#ffffff", segment);
   return c;
 }
+
+/**
+ * Convert a photo on a canvas into a sketch-like image using Sobel edge detection.
+ * Includes a preprocessing blur step to reduce camera noise.
+ */
+export function sketchifyCanvas(canvas: HTMLCanvasElement): string {
+  const W = canvas.width;
+  const H = canvas.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return canvas.toDataURL();
+
+  const imgData = ctx.getImageData(0, 0, W, H);
+  const data = imgData.data;
+  
+  // 1. Grayscale
+  const gray = new Float32Array(W * H);
+  for (let i = 0; i < data.length; i += 4) {
+    gray[i / 4] = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+  }
+
+  // 2. Gaussian Blur (3x3) to denoise camera artifacts
+  const denoised = new Float32Array(W * H);
+  const blurK = [1/16, 2/16, 1/16, 2/16, 4/16, 2/16, 1/16, 2/16, 1/16];
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      let sum = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          sum += gray[(y + ky) * W + (x + kx)] * blurK[(ky + 1) * 3 + (kx + 1)];
+        }
+      }
+      denoised[y * W + x] = sum;
+    }
+  }
+
+  // 3. Sharpening Filter to "Remove Blur" and define features like glasses
+  // Kernel: [0,-1,0, -1,5,-1, 0,-1,0]
+  const sharpened = new Float32Array(W * H);
+  const sharpK = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      let sum = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          sum += denoised[(y + ky) * W + (x + kx)] * sharpK[(ky + 1) * 3 + (kx + 1)];
+        }
+      }
+      sharpened[y * W + x] = Math.max(0, Math.min(255, sum));
+    }
+  }
+
+  // 4. Sobel Edge Detection
+  const output = ctx.createImageData(W, H);
+  const outData = output.data;
+  const gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+  const gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      let sumX = 0;
+      let sumY = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const val = sharpened[(y + ky) * W + (x + kx)];
+          sumX += val * gx[(ky + 1) * 3 + (kx + 1)];
+          sumY += val * gy[(ky + 1) * 3 + (kx + 1)];
+        }
+      }
+      
+      let mag = Math.sqrt(sumX * sumX + sumY * sumY);
+      
+      // Strict threshold to remove background noise while keeping sharp features
+      mag = mag > 35 ? Math.min(255, mag * 2.8) : 0;
+      
+      const idx = (y * W + x) * 4;
+      outData[idx] = outData[idx + 1] = outData[idx + 2] = mag;
+      outData[idx + 3] = 255;
+    }
+  }
+
+  const tempC = document.createElement("canvas");
+  tempC.width = W; tempC.height = H;
+  tempC.getContext("2d")!.putImageData(output, 0, 0);
+  return tempC.toDataURL();
+}

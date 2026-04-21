@@ -23,6 +23,7 @@ import {
   getCanvasPos,
   makeReferenceCanvas,
   pixelScore,
+  sketchifyCanvas,
 } from "./faceUtils";
 
 const W = 380;
@@ -40,13 +41,13 @@ const PIPELINE = [
 interface Props {
   onGameComplete: (score: number) => void;
 }
-
 export default function MatchBoost({ onGameComplete }: Props) {
   const drawRef   = useRef<HTMLCanvasElement>(null);
   const tplRef    = useRef<HTMLCanvasElement>(null); // dark bg only, no template
   const isDrawRef = useRef(false);
   const lastRef   = useRef<{ x: number; y: number } | null>(null);
 
+  const [inputMode, setInputMode] = useState<"sketch" | "camera">("sketch");
   const [phase, setPhase]         = useState<"draw" | "loading" | "result">("draw");
   const [activePipe, setActivePipe] = useState(-1);
   const [quality, setQuality]     = useState(0);
@@ -54,8 +55,52 @@ export default function MatchBoost({ onGameComplete }: Props) {
   const [revealedCount, setRevealedCount] = useState(0);
   const [brushSize, setBrushSize] = useState(2);
   const [isEraser, setIsEraser]   = useState(false);
+  
+  // Camera state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isSketchify, setIsSketchify] = useState(true);
 
   const predictMutation = trpc.ml.predict.useMutation();
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: W, height: H } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsCameraActive(true);
+        setCapturedImage(null);
+      }
+    } catch (err) {
+      toast.error("Camera access denied or unavailable.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const captureFrame = () => {
+    const v = videoRef.current; if (!v) return;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d")!;
+    // Mirror horizontally if using front camera usually, but we'll stick to direct for now
+    ctx.drawImage(v, 0, 0, W, H);
+    
+    let result = c.toDataURL("image/png");
+    if (isSketchify) {
+      result = sketchifyCanvas(c);
+    }
+    setCapturedImage(result);
+    stopCamera();
+  };
 
   const clearDraw = useCallback(() => {
     const dc = drawRef.current; if (!dc) return;
@@ -111,23 +156,31 @@ export default function MatchBoost({ onGameComplete }: Props) {
     }, 340);
   };
 
-  // ── Submit sketch ─────────────────────────────────────────────────────────
+  // ── Submit ───────────────────────────────────────────────────────────────
   const submit = useCallback(async () => {
-    const dc = drawRef.current; if (!dc) return;
+    let base64 = "";
+    let qScore = 0;
 
-    // Compute sketch quality against balanced face profile
-    const ref = makeReferenceCanvas(FACE_PROFILES[0], W, H);
-    const { overall } = pixelScore(dc, ref);
-    setQuality(overall);
+    if (inputMode === "sketch") {
+      const dc = drawRef.current; if (!dc) return;
+      // Compute sketch quality
+      const ref = makeReferenceCanvas(FACE_PROFILES[0], W, H);
+      const { overall } = pixelScore(dc, ref);
+      qScore = overall;
 
-    // Composite: dark bg + user strokes
-    const comp = document.createElement("canvas");
-    comp.width = W; comp.height = H;
-    const cctx = comp.getContext("2d")!;
-    cctx.fillStyle = "#0a0f1a"; cctx.fillRect(0, 0, W, H);
-    cctx.drawImage(dc, 0, 0);
-    const base64 = comp.toDataURL("image/png").split(",")[1];
+      const comp = document.createElement("canvas");
+      comp.width = W; comp.height = H;
+      const cctx = comp.getContext("2d")!;
+      cctx.fillStyle = "#0a0f1a"; cctx.fillRect(0, 0, W, H);
+      cctx.drawImage(dc, 0, 0);
+      base64 = comp.toDataURL("image/png").split(",")[1];
+    } else {
+      if (!capturedImage) return;
+      base64 = capturedImage.split(",")[1];
+      qScore = isSketchify ? 85 : 70; // Hardcoded quality for photographic inputs
+    }
 
+    setQuality(qScore);
     setPhase("loading");
     setActivePipe(-1);
     setMatches([]);
@@ -138,7 +191,6 @@ export default function MatchBoost({ onGameComplete }: Props) {
         const res = await predictMutation.mutateAsync({ imageData: base64, topK: 5 });
         const found = (res.matches || []) as any[];
         setMatches(found);
-        // Reveal cards one at a time
         let i = 0;
         const reveal = setInterval(() => {
           i++;
@@ -146,15 +198,15 @@ export default function MatchBoost({ onGameComplete }: Props) {
           if (i >= found.length) clearInterval(reveal);
         }, 250);
         setPhase("result");
-        onGameComplete(Math.min(100, overall + Math.round((found[0]?.confidence ?? 0) * 30)));
-        toast.success("Sketch processed by AI!");
+        onGameComplete(Math.min(100, qScore + Math.round((found[0]?.confidence ?? 0) * 30)));
+        toast.success("Identity processed by AI!");
       } catch {
         toast.error("Match API offline — score recorded.");
         setPhase("result");
-        onGameComplete(overall);
+        onGameComplete(qScore);
       }
     });
-  }, [predictMutation, onGameComplete]);
+  }, [inputMode, capturedImage, isSketchify, predictMutation, onGameComplete]);
 
   const reset = () => {
     setPhase("draw");
@@ -170,22 +222,64 @@ export default function MatchBoost({ onGameComplete }: Props) {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="sg-boost-shell">
+      <div className="sg-mode-toggle" style={{ marginBottom: 16 }}>
+        <button className={`fc-btn ${inputMode === "sketch" ? "primary" : ""}`}
+          onClick={() => { setInputMode("sketch"); stopCamera(); setCapturedImage(null); setPhase("draw"); }}>
+          Manual Sketch
+        </button>
+        <button className={`fc-btn ${inputMode === "camera" ? "primary" : ""}`}
+          onClick={() => { setInputMode("camera"); setPhase("draw"); }}>
+          Camera Capture
+        </button>
+      </div>
+
       <div className="sg-boost-body">
-        {/* Left: canvas */}
+        {/* Left: input area */}
         <div className="sg-canvas-col">
           <div className="sg-boost-canvas-label">
-            {phase === "draw"    && "Draw your suspect sketch"}
-            {phase === "loading" && "Submitting to AI…"}
-            {phase === "result"  && "Sketch submitted ✓"}
+            {inputMode === "sketch" ? (
+              phase === "draw" ? "Draw your suspect sketch" : phase === "loading" ? "Submitting to AI…" : "Sketch submitted ✓"
+            ) : (
+              phase === "draw" ? "Capture suspect from camera" : phase === "loading" ? "Processing identity…" : "Identity captured ✓"
+            )}
           </div>
-          <div className="sg-canvas-stack" style={{ width: W, height: H }}>
-            <canvas ref={tplRef}  width={W} height={H} className="sg-canvas-bg" />
-            <canvas ref={drawRef} width={W} height={H} className="sg-canvas-fg"
-              style={{ cursor: phase === "draw" ? (isEraser ? "cell" : "crosshair") : "default" }}
-              onPointerDown={onDown} onPointerMove={onMove}
-              onPointerUp={onUp}    onPointerLeave={onUp} />
+          
+          <div className="sg-canvas-stack" style={{ width: W, height: H, background: "#0a0f1a", overflow: "hidden" }}>
+            {inputMode === "sketch" ? (
+              <>
+                <canvas ref={tplRef}  width={W} height={H} className="sg-canvas-bg" />
+                <canvas ref={drawRef} width={W} height={H} className="sg-canvas-fg"
+                  style={{ cursor: phase === "draw" ? (isEraser ? "cell" : "crosshair") : "default" }}
+                  onPointerDown={onDown} onPointerMove={onMove}
+                  onPointerUp={onUp}    onPointerLeave={onUp} />
+              </>
+            ) : (
+              <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                {!capturedImage ? (
+                  <>
+                    <video ref={videoRef} autoPlay playsInline width={W} height={H} 
+                      style={{ objectFit: "cover", display: isCameraActive ? "block" : "none" }} />
+                    {isCameraActive && (
+                      <div className="sg-face-guide">
+                        <div className="sg-face-oval" />
+                        <div className="sg-face-h-line" />
+                      </div>
+                    )}
+                    {!isCameraActive && (
+                      <div className="sg-cam-ph" onClick={startCamera}>
+                        <div className="sg-cam-icon">📷</div>
+                        <span>Click to Start Camera</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <img src={capturedImage} alt="Capture" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                )}
+              </div>
+            )}
           </div>
-          {phase === "draw" && (
+
+          {phase === "draw" && inputMode === "sketch" && (
             <div className="sg-canvas-actions">
               <button className="fc-btn primary" onClick={submit}
                 disabled={predictMutation.isPending}>Submit to AI Matcher</button>
@@ -202,9 +296,32 @@ export default function MatchBoost({ onGameComplete }: Props) {
               </div>
             </div>
           )}
+
+          {phase === "draw" && inputMode === "camera" && (
+            <div className="sg-canvas-actions">
+              {!capturedImage ? (
+                <button className="fc-btn primary" onClick={captureFrame} disabled={!isCameraActive}>
+                  Capture Photo
+                </button>
+              ) : (
+                <>
+                  <button className="fc-btn primary" onClick={submit}
+                    disabled={predictMutation.isPending}>Submit for Match</button>
+                  <button className="fc-btn" onClick={() => { setCapturedImage(null); startCamera(); }}>
+                    Retake
+                  </button>
+                  <button className={`fc-btn ${isSketchify ? "primary" : ""}`}
+                    onClick={() => setIsSketchify(p => !p)}>
+                    {isSketchify ? "Sketch Mode: ON" : "Sketch Mode: OFF"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {phase === "result" && (
             <div className="sg-canvas-actions">
-              <button className="fc-btn primary" onClick={reset}>Draw Another</button>
+              <button className="fc-btn primary" onClick={reset}>Try Another</button>
             </div>
           )}
         </div>
@@ -264,7 +381,12 @@ export default function MatchBoost({ onGameComplete }: Props) {
                     ? <img src={m.image_url} alt={m.name} className="sg-match-thumb" />
                     : <div className="sg-match-thumb sg-match-ph" />}
                   <div className="sg-match-info">
-                    <strong>{m.name ?? "Unknown"}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <strong>{m.name ?? "Unknown"}</strong>
+                      <span className={`fc-risk-badge ${m.risk_level || "low"}`} style={{ fontSize: '0.55rem', padding: '1px 4px' }}>
+                        {m.risk_level || "low"}
+                      </span>
+                    </div>
                     <span>{m.city ?? "—"} · {m.crime_type ?? "—"}</span>
                   </div>
                   <div className="sg-match-conf" style={{ color: i === 0 ? "#00ffcc" : "#00d4ff" }}>

@@ -60,16 +60,16 @@ function xpProgress(xp: number) {
 // ─── Game metadata ────────────────────────────────────────────────────────────
 
 const GAMES: { id: GameMode; label: string; subtitle: string; icon: string }[] = [
+  { id: "speed",  label: "Memory Study",    subtitle: "Study and draw from memory",    icon: "🧠" },
   { id: "stroke", label: "Stroke Trainer",  subtitle: "Step-by-step face segments",   icon: "🖊" },
   { id: "quiz",   label: "Face Quiz",       subtitle: "Click the matching face",       icon: "🔍" },
-  { id: "speed",  label: "Speed Sketch",    subtitle: "Memory race · 3 rounds",        icon: "⚡" },
-  { id: "boost",  label: "Match Boost",     subtitle: "Draw → real AI pipeline",       icon: "🎯" },
+  { id: "boost",  label: "Camera Match",     subtitle: "Match sketch or camera photo", icon: "🎯" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SketchGame() {
-  const [mode, setMode]   = useState<GameMode>("stroke");
+  const [mode, setMode]   = useState<GameMode>("speed");
   const [stats, setStats] = useState<GameStats>(loadStats);
   const [lastResult, setLastResult] = useState<{ score: number; xp: number } | null>(null);
   // key forces game remount on mode switch

@@ -1005,3 +1005,131 @@
     order: -1;
   }
 }
+
+/* ── Camera Match Styles ─────────────────────────── */
+.sg-mode-toggle {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.sg-cam-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #1a2d48 0%, #0c0f18 100%);
+  color: #00d4ff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.sg-cam-ph:hover {
+  background: radial-gradient(circle at center, #224060 0%, #0c0f18 100%);
+  color: #00ffcc;
+}
+
+.sg-cam-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.5));
+}
+
+.sg-cam-ph span {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Scanning effect */
+.sg-canvas-stack::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 15px #00d4ff;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.sg-boost-shell:has(.sg-pipe-step.current) .sg-canvas-stack::after {
+  opacity: 1;
+  animation: sg-scan 2s infinite ease-in-out;
+}
+
+@keyframes sg-scan {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+/* Risk Badges */
+.fc-risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+
+.fc-risk-badge.high {
+  background: rgba(255, 68, 68, 0.15);
+  color: #ff4444;
+  border-color: rgba(255, 68, 68, 0.4);
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
+}
+
+.fc-risk-badge.medium {
+  background: rgba(255, 187, 51, 0.15);
+  color: #ffbb33;
+  border-color: rgba(255, 187, 51, 0.4);
+}
+
+.fc-risk-badge.low {
+  background: rgba(0, 201, 167, 0.15);
+  color: #00c9a7;
+  border-color: rgba(0, 201, 167, 0.4);
+}
+
+/* Face Guide Styles */
+.sg-face-guide {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.sg-face-oval {
+  width: 180px;
+  height: 240px;
+  border: 2px dashed rgba(0, 255, 204, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgba(10, 15, 26, 0.4);
+}
+
+.sg-face-h-line {
+  position: absolute;
+  width: 180px;
+  height: 1px;
+  background: rgba(0, 255, 204, 0.3);
+  top: 45%;
+}
+
+.sg-match-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid #1a2d48;
+}
