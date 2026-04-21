@@ -414,9 +414,275 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   SKETCH GAME MODULE
+   SKETCH GAME MODULE  —  4 distinct games
 ═══════════════════════════════════════════════════════ */
 
+/* ── Shared canvas stack (bg + fg overlay) ─────────── */
+.sg-canvas-stack {
+  position: relative;
+  border: 1px solid #224060;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 18px rgba(0, 212, 255, 0.07);
+}
+.sg-canvas-bg,
+.sg-canvas-fg {
+  position: absolute;
+  top: 0; left: 0;
+  display: block;
+}
+.sg-canvas-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 10px;
+}
+.sg-canvas-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sg-tool-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 28px;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.7rem;
+  color: #6a9abf;
+  font-family: 'Share Tech Mono', monospace;
+}
+.sg-tool-row input[type=range] { width: 100%; }
+
+/* ── Intro / summary screen (all games share this) ─── */
+.sg-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  gap: 14px;
+  background: #101826;
+  border: 1px solid #1a2d48;
+  border-radius: 10px;
+  max-width: 540px;
+  margin: 0 auto;
+}
+.sg-intro-icon { font-size: 2.4rem; }
+.sg-intro h2   { margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 1.5rem; color: #c2d8f0; letter-spacing: 1px; }
+.sg-intro p    { margin: 0; font-size: 0.82rem; color: #7a9bb8; line-height: 1.6; }
+.sg-intro-note { font-size: 0.72rem !important; color: #4e7697 !important; font-family: 'Share Tech Mono', monospace; }
+.sg-final-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #00ffcc;
+  line-height: 1;
+}
+.sg-final-score small { font-size: 1rem; color: #6a9abf; }
+
+/* ── Container shell ────────────────────────────────── */
+.sg-shell { display: flex; flex-direction: column; gap: 12px; }
+
+/* Mode bar (4 game selector cards) */
+.sg-mode-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.sg-mode-btn {
+  border: 1px solid #1a2d48;
+  background: #0d1624;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sg-mode-btn:hover { border-color: #224060; }
+.sg-mode-btn.active { border-color: #00d4ff; background: rgba(0,212,255,0.07); }
+.sg-mode-icon  { font-size: 1.2rem; }
+.sg-mode-label { font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; font-weight: 700; color: #c2d8f0; }
+.sg-mode-sub   { font-size: 0.66rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; }
+.sg-mode-btn.active .sg-mode-label { color: #00d4ff; }
+
+/* Main layout: game area + side panel */
+.sg-main {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 12px;
+  align-items: start;
+}
+.sg-game-area {
+  background: #101826;
+  border: 1px solid #1a2d48;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 480px;
+}
+
+/* Side panel */
+.sg-side-panel {
+  background: #101826;
+  border: 1px solid #1a2d48;
+  border-radius: 8px;
+  padding: 14px;
+}
+.sg-last-result {
+  border: 1px solid #00ffcc33;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+  text-align: center;
+  background: rgba(0,255,204,0.05);
+}
+.sg-last-score { font-family: 'Rajdhani', sans-serif; font-size: 2.2rem; font-weight: 700; color: #00ffcc; line-height: 1; }
+.sg-last-score small { font-size: 0.8rem; color: #6a9abf; }
+.sg-last-xp    { color: #ffd700; font-size: 0.85rem; font-family: 'Rajdhani', sans-serif; font-weight: 700; }
+.sg-rank-name  { font-family: 'Rajdhani', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; letter-spacing: 1px; }
+.sg-xp-row     { font-size: 0.68rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; margin-bottom: 5px; }
+.sg-xp-track   { height: 5px; background: #1a2d48; border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+.sg-xp-fill    { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.sg-xp-sub     { font-size: 0.64rem; color: #4e7697; font-family: 'Share Tech Mono', monospace; text-align: right; margin-bottom: 10px; }
+.sg-levels     { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.sg-level-row  { display: grid; grid-template-columns: 12px 1fr auto; gap: 6px; font-size: 0.68rem; font-family: 'Share Tech Mono', monospace; }
+.sg-level-row.earned { font-weight: 600; }
+.sg-lb-row     { display: grid; grid-template-columns: 22px 34px 1fr 44px; gap: 4px; padding: 4px 0; border-bottom: 1px solid #1a2d48; font-size: 0.68rem; font-family: 'Share Tech Mono', monospace; }
+.sg-lb-row:last-child { border-bottom: none; }
+.sg-lb-rank    { color: #6a9abf; }
+.sg-lb-score   { color: #00ffcc; font-weight: bold; }
+.sg-lb-mode    { color: #8aa9c6; }
+.sg-lb-date    { color: #4e7697; text-align: right; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GAME 1 — STROKE TRAINER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sg-trainer-shell  { display: flex; flex-direction: column; gap: 10px; }
+.sg-trainer-body   { display: grid; grid-template-columns: 200px 1fr; gap: 14px; }
+.sg-trainer-info   { display: flex; flex-direction: column; gap: 6px; }
+.sg-progress-bar   { height: 4px; background: #1a2d48; border-radius: 2px; overflow: hidden; }
+.sg-progress-fill  { height: 100%; background: #00d4ff; border-radius: 2px; transition: width 0.4s; }
+.sg-step-counter   { font-size: 0.68rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; }
+.sg-step-name      { font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700; color: #00d4ff; letter-spacing: 1px; }
+.sg-step-tip       { font-size: 0.74rem; color: #7a9bb8; line-height: 1.5; }
+.sg-step-list      { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.sg-step-item      { display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; align-items: center; font-size: 0.72rem; color: #4e7697; padding: 5px 8px; border-radius: 5px; border: 1px solid transparent; }
+.sg-step-item.active { color: #00d4ff; border-color: #224060; background: rgba(0,212,255,0.07); }
+.sg-step-item.done   { color: #00ffcc; }
+.sg-step-dot  { font-size: 0.7rem; text-align: center; }
+.sg-step-sc   { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: #00ffcc; }
+.sg-canvas-label { font-size: 0.72rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+.sg-canvas-label strong { color: #00d4ff; }
+.sg-step-feedback { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-size: 0.76rem; font-family: 'Share Tech Mono', monospace; text-align: center; }
+.sg-step-feedback.good { background: rgba(0,255,204,0.1); border: 1px solid #00ffcc44; color: #00ffcc; }
+.sg-step-feedback.ok   { background: rgba(0,212,255,0.1); border: 1px solid #00d4ff44; color: #00d4ff; }
+.sg-step-feedback.low  { background: rgba(255,215,0,0.08); border: 1px solid #ffd70044; color: #ffd700; }
+.sg-step-results { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.sg-step-result-row { display: grid; grid-template-columns: 1fr 100px 36px; gap: 8px; align-items: center; font-size: 0.76rem; }
+.sg-mini-bar { height: 6px; background: #1a2d48; border-radius: 3px; overflow: hidden; }
+.sg-mini-bar div { height: 100%; border-radius: 3px; }
+.sg-step-score { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: #c2d8f0; text-align: right; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GAME 2 — FACE QUIZ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sg-quiz-shell   { display: flex; flex-direction: column; gap: 12px; }
+.sg-quiz-header  { display: flex; align-items: center; gap: 10px; }
+.sg-round-badge  { font-size: 0.72rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; white-space: nowrap; }
+.sg-score-badge  { font-size: 0.72rem; color: #00ffcc; font-family: 'Share Tech Mono', monospace; white-space: nowrap; margin-left: auto; }
+.sg-timer-bar    { flex: 1; height: 6px; background: #1a2d48; border-radius: 3px; overflow: hidden; }
+.sg-timer-fill   { height: 100%; border-radius: 3px; transition: width 1s linear, background 0.3s; }
+.sg-timer-num    { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; white-space: nowrap; }
+.sg-quiz-body    { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+.sg-quiz-target  { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sg-quiz-label   { font-size: 0.68rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; letter-spacing: 2px; }
+.sg-target-frame { border: 1px solid #00d4ff44; border-radius: 8px; overflow: hidden; background: #0a0f1a; }
+.sg-target-frame img { display: block; }
+.sg-target-name  { font-size: 0.68rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; padding: 4px 8px; }
+.sg-quiz-instruction { font-size: 0.72rem; color: #7a9bb8; text-align: center; line-height: 1.4; }
+.sg-quiz-grid    { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sg-quiz-option  { border: 2px solid #1a2d48; border-radius: 8px; background: #0d1624; padding: 4px; cursor: pointer; position: relative; transition: border-color 0.15s; }
+.sg-quiz-option:hover:not(:disabled) { border-color: #224060; }
+.sg-quiz-option.correct { border-color: #00ffcc !important; }
+.sg-quiz-option.wrong   { border-color: #ff4444 !important; }
+.sg-quiz-option img { width: 100%; display: block; border-radius: 5px; }
+.sg-opt-badge    { position: absolute; top: 4px; right: 4px; border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; font-size: 0.7rem; font-weight: 700; }
+.sg-opt-badge.correct { background: #00ffcc; color: #0a0f1a; }
+.sg-opt-badge.wrong   { background: #ff4444; color: #fff; }
+.sg-reveal-banner { padding: 10px 16px; border-radius: 6px; font-size: 0.78rem; font-family: 'Share Tech Mono', monospace; text-align: center; }
+.sg-reveal-banner.correct { background: rgba(0,255,204,0.1); color: #00ffcc; border: 1px solid #00ffcc44; }
+.sg-reveal-banner.wrong   { background: rgba(255,68,68,0.1);  color: #ff8888; border: 1px solid #ff444444; }
+.sg-quiz-results { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.sg-quiz-result-row { display: grid; grid-template-columns: 60px 80px 1fr; gap: 8px; padding: 6px 10px; border-radius: 5px; font-size: 0.76rem; font-family: 'Share Tech Mono', monospace; background: #0d1624; border: 1px solid #1a2d48; }
+.sg-quiz-result-row.correct { border-color: #00ffcc44; color: #00ffcc; }
+.sg-quiz-result-row.wrong   { border-color: #ff444444; color: #ff8888; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GAME 3 — SPEED SKETCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sg-speed-shell  { display: flex; flex-direction: column; gap: 10px; }
+.sg-speed-header { padding: 8px 10px; border: 1px solid #1a2d48; border-radius: 6px; background: #0d1624; }
+.sg-study-banner { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; color: #00d4ff; letter-spacing: 2px; }
+.sg-draw-banner  { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; }
+.sg-scored-banner{ font-size: 0.8rem; color: #00ffcc; font-family: 'Share Tech Mono', monospace; }
+.sg-study-bar    { height: 4px; background: #1a2d48; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.sg-study-bar div { height: 100%; border-radius: 2px; transition: width 1s linear; }
+.sg-speed-body   { display: grid; grid-template-columns: 1fr 160px; gap: 12px; }
+.sg-speed-scores { background: #0d1624; border: 1px solid #1a2d48; border-radius: 8px; padding: 12px; }
+.sg-speed-score-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a2d48; font-size: 0.72rem; font-family: 'Share Tech Mono', monospace; }
+.sg-speed-score-row:last-child { border-bottom: none; }
+.sg-speed-score-row.current { color: #ffd700; }
+.sg-speed-mult-guide { }
+.sg-mult-row    { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.7rem; font-family: 'Share Tech Mono', monospace; }
+.sg-speed-results { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.sg-speed-row   { display: grid; grid-template-columns: 1fr 90px 44px 50px; gap: 6px; padding: 6px 10px; background: #0d1624; border: 1px solid #1a2d48; border-radius: 5px; font-size: 0.74rem; font-family: 'Share Tech Mono', monospace; align-items: center; }
+.sg-mult        { color: #ffd700; }
+.sg-final-pts   { color: #00ffcc; font-weight: bold; text-align: right; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GAME 4 — MATCH BOOST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sg-boost-shell  { display: flex; flex-direction: column; gap: 10px; }
+.sg-boost-body   { display: grid; grid-template-columns: 1fr 280px; gap: 14px; }
+.sg-boost-right  { display: flex; flex-direction: column; gap: 12px; }
+.sg-boost-canvas-label { font-size: 0.72rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.sg-boost-pipeline { background: #0d1624; border: 1px solid #1a2d48; border-radius: 8px; padding: 12px; }
+.sg-pipeline-steps { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sg-pipe-step   { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 5px; border: 1px solid #1a2d48; font-size: 0.72rem; font-family: 'Share Tech Mono', monospace; color: #4e7697; transition: all 0.2s; }
+.sg-pipe-step.active  { border-color: #224060; color: #8aa9c6; }
+.sg-pipe-step.current { border-color: #00d4ff; background: rgba(0,212,255,0.1); color: #00d4ff; }
+.sg-pipe-icon   { font-size: 0.9rem; }
+.sg-boost-metrics { display: flex; align-items: center; gap: 8px; background: #0d1624; border: 1px solid #1a2d48; border-radius: 8px; padding: 12px; }
+.sg-metric-card { flex: 1; text-align: center; }
+.sg-metric-card div { font-size: 0.68rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; margin-bottom: 2px; }
+.sg-metric-val  { font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.sg-metric-sep  { font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; color: #4e7697; }
+.sg-boost-insight { font-size: 0.72rem; font-family: 'Share Tech Mono', monospace; color: #7a9bb8; padding: 8px 10px; background: #0d1624; border: 1px solid #1a2d48; border-radius: 6px; line-height: 1.5; }
+.sg-boost-matches { background: #0d1624; border: 1px solid #1a2d48; border-radius: 8px; padding: 12px; }
+.sg-boost-match-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1a2d48; }
+.sg-boost-match-row:last-child { border-bottom: none; }
+.sg-match-rank  { font-size: 0.68rem; color: #4e7697; font-family: 'Share Tech Mono', monospace; min-width: 22px; }
+.sg-match-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.sg-match-ph    { background: #0a101b; }
+.sg-match-info  { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.sg-match-info strong { font-size: 0.76rem; color: #c2d8f0; }
+.sg-match-info span   { font-size: 0.66rem; color: #6a9abf; font-family: 'Share Tech Mono', monospace; }
+.sg-match-conf  { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .sg-mode-bar { grid-template-columns: repeat(2, 1fr); }
+  .sg-main     { grid-template-columns: 1fr; }
+  .sg-trainer-body { grid-template-columns: 1fr; }
+  .sg-quiz-body    { grid-template-columns: 1fr; }
+  .sg-speed-body   { grid-template-columns: 1fr; }
+  .sg-boost-body   { grid-template-columns: 1fr; }
+}
+
+/* ── Legacy fc-game-shell (kept for compat) ──────────── */
 .fc-game-shell {
   display: flex;
   flex-direction: column;
