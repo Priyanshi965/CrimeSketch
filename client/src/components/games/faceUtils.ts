@@ -48,8 +48,15 @@ export function drawProfileFace(
   const dim = baseColor + "44";
 
   function seg(s: FaceSegment, w: number) {
-    ctx.strokeStyle = full || highlight === s ? baseColor : dim;
-    ctx.lineWidth    = full || highlight === s ? w : w * 0.7;
+    const active = full || highlight === s;
+    ctx.strokeStyle = active ? baseColor : dim;
+    ctx.lineWidth   = active ? (full ? w : w * 2.2) : w * 0.6;
+    if (!full && highlight === s) {
+      ctx.shadowColor = baseColor;
+      ctx.shadowBlur  = 16;
+    } else {
+      ctx.shadowBlur = 0;
+    }
   }
 
   const ey = cy + p.eyeOffY;
